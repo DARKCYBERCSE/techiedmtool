@@ -664,7 +664,7 @@ export default function AccountsPage() {
                       type="button"
                       onClick={() => {
                         setHandleInput('techiemuthuraj');
-                        setTokenInput(process.env.NEXT_PUBLIC_INSTAGRAM_ACCESS_TOKEN || 'IGAAN7QQvMlLBBZAFlQVFRVa2d3c0plRjV4bzU1RW1jNkZANUVhIWUVhV2ZANNzlTM09XN3VpOHJpOVdmNTdGOTdfTVhoWjE0WHU4c01vczB0ZAmttV2x5bk9BSTJHeEtPV0h6aHQwVk84UnYxbVdmUDYwbnNiTzZAHWldQeEdmYjZASawZDZD');
+                        setTokenInput(process.env.NEXT_PUBLIC_INSTAGRAM_ACCESS_TOKEN || 'IGAAN7QQvMlLBBZAFpIQ3NpUm5jQ29BVG00Uk9DcWpUenNhV0JpbjhqbzVLajMwQk1nRUlYMUlxMl9MOEx3ZADMyekpNMlMwMWdZAbzhqUnJjdFFscWt5alZAiR3JacGtxVG5CS2ZA2NG5tUDFHTk96YXdVMDZAxcFN1NHd2WUdMUDZAwcwZDZD');
                       }}
                       className="text-xs text-[#F43F5E] hover:underline font-bold self-start"
                     >

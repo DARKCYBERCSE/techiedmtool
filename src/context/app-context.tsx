@@ -105,7 +105,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           profile_picture_url: 'https://scontent.cdninstagram.com/v/t51.82787-19/825326135_17881428522689519_8873317729779957728_n.jpg?stp=dst-jpg_s206x206_tt6&_nc_cat=102&ccb=7-5&_nc_sid=bf7eb4&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLnd3dy4xMDgwLkMzIn0%3D&_nc_ohc=G8kgqQPgZ24Q7kNvwGytY5w&_nc_oc=AdoKBV23LQnb7UpngvYAsO4JCnLzMac7xZPtiIVbbxwX75HLdiZkZ0KNDIynpmds_2QmvCzYEXiRuuHcu6VLPOlX&_nc_zt=24&_nc_ht=scontent.cdninstagram.com&edm=AP4hL3IEAAAA&_nc_gid=HctZK2DO6qxnyKb-Olc2xA&_nc_tpa=Q5bMBQINWZdl4boXdojiE3PJWoG4SlDR3mP7r5-afuELjmWxk14KUpo8Of7K3Zt90DmtLp8-r9M1bn8S&oh=00_AQPS-d9kHR73euzeVsKCkbWqP8Ren_5_qJ7Nhv-03Y5K0w&oe=6ADAC06D',
           account_type: 'CREATOR',
           connection_status: 'CONNECTED',
-          access_token: process.env.NEXT_PUBLIC_INSTAGRAM_ACCESS_TOKEN || 'IGAAN7QQvMlLBBZAFlQVFRVa2d3c0plRjV4bzU1RW1jNkZANUVhIWUVhV2ZANNzlTM09XN3VpOHJpOVdmNTdGOTdfTVhoWjE0WHU4c01vczB0ZAmttV2x5bk9BSTJHeEtPV0h6aHQwVk84UnYxbVdmUDYwbnNiTzZAHWldQeEdmYjZASawZDZD',
+          access_token: process.env.NEXT_PUBLIC_INSTAGRAM_ACCESS_TOKEN || 'IGAAN7QQvMlLBBZAFpIQ3NpUm5jQ29BVG00Uk9DcWpUenNhV0JpbjhqbzVLajMwQk1nRUlYMUlxMl9MOEx3ZADMyekpNMlMwMWdZAbzhqUnJjdFFscWt5alZAiR3JacGtxVG5CS2ZA2NG5tUDFHTk96YXdVMDZAxcFN1NHd2WUdMUDZAwcwZDZD',
           token_expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
