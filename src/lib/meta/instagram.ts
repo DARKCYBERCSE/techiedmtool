@@ -179,6 +179,45 @@ export async function fetchInstagramAccountsFromMeta(userAccessToken: string): P
 }
 
 /**
+ * Fetches real Instagram Posts and Reels for an account using Graph API
+ */
+export interface InstagramMediaItem {
+  id: string;
+  caption?: string;
+  media_type: 'IMAGE' | 'VIDEO' | 'CAROUSEL_ALBUM';
+  media_url?: string;
+  thumbnail_url?: string;
+  permalink: string;
+  timestamp: string;
+  comments_count?: number;
+  like_count?: number;
+}
+
+export async function fetchInstagramMedia(
+  instagramAccountId: string,
+  accessToken: string
+): Promise<InstagramMediaItem[]> {
+  try {
+    const apiVersion = process.env.INSTAGRAM_API_VERSION || 'v21.0';
+    const effectiveToken = accessToken || process.env.NEXT_PUBLIC_INSTAGRAM_ACCESS_TOKEN || '';
+    const url = `https://graph.facebook.com/${apiVersion}/${instagramAccountId}/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,comments_count,like_count&access_token=${effectiveToken}`;
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (!res.ok || !data.data) {
+      console.warn('Failed to fetch Instagram media:', data.error);
+      return [];
+    }
+
+    return data.data as InstagramMediaItem[];
+  } catch (err) {
+    console.error('Error fetching Instagram media:', err);
+    return [];
+  }
+}
+
+/**
  * Webhook signature verification for real Meta Webhooks
  */
 export const verifyMetaWebhookSignature = (

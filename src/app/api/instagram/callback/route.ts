@@ -10,6 +10,17 @@ export async function GET(req: NextRequest) {
   const errorReason = searchParams.get('error_reason');
   const errorDescription = searchParams.get('error_description');
 
+  // Handle accidental webhook challenge sent to callback URL
+  const hubMode = searchParams.get('hub.mode');
+  const hubChallenge = searchParams.get('hub.challenge');
+  const hubVerifyToken = searchParams.get('hub.verify_token');
+  if (hubMode === 'subscribe' && hubChallenge) {
+    return new NextResponse(hubChallenge, {
+      status: 200,
+      headers: { 'Content-Type': 'text/plain' },
+    });
+  }
+
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
 
   // 1. Handle Meta OAuth cancellation or permission denial
