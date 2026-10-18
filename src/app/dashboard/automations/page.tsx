@@ -1,0 +1,197 @@
+'use client';
+
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { 
+  Plus, 
+  Search, 
+  Filter, 
+  Zap, 
+  Trash2, 
+  Pause, 
+  Play, 
+  Edit3, 
+  CheckCircle2, 
+  AlertCircle,
+  Copy,
+  ExternalLink,
+  MessageSquare
+} from 'lucide-react';
+import { DashboardSidebar } from '@/components/layout/dashboard-sidebar';
+import { DashboardTopNav } from '@/components/layout/dashboard-top-nav';
+import { useApp } from '@/context/app-context';
+
+export default function AutomationsPage() {
+  const { automations, deleteAutomation, toggleAutomationStatus } = useApp();
+  const [search, setSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'ALL' | 'ACTIVE' | 'PAUSED'>('ALL');
+
+  const filteredAutomations = automations.filter((a) => {
+    const matchesSearch = a.name.toLowerCase().includes(search.toLowerCase()) ||
+      (a.description && a.description.toLowerCase().includes(search.toLowerCase()));
+    const matchesStatus = filterStatus === 'ALL' || a.status === filterStatus;
+    return matchesSearch && matchesStatus;
+  });
+
+  return (
+    <div className="min-h-screen bg-[#FFF5F7] text-[#1F1216] flex">
+      <DashboardSidebar />
+
+      <div className="flex-1 ml-64 min-w-0 flex flex-col">
+        <DashboardTopNav title="Automations" />
+
+        <main className="p-6 sm:p-8 space-y-6 flex-1 max-w-7xl mx-auto w-full">
+          {/* Header Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black text-[#1F1216] tracking-tight">Automation Rules</h2>
+              <p className="text-xs sm:text-sm text-[#6B4E58] mt-1 font-medium">
+                Configure auto-responders, keyword conditions, and reel comment triggers.
+              </p>
+            </div>
+
+            <Link
+              href="/dashboard/automations/new"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-bold text-white rose-button-primary shadow-lg shadow-[#F43F5E]/20 self-start sm:self-auto"
+            >
+              <Plus className="w-4 h-4" />
+              New Automation
+            </Link>
+          </div>
+
+          {/* Search & Filter Bar */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-[#9E7D88] absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search automations by name or description..."
+                className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-[#FFFFFF] border border-[#FED7E2] text-xs font-medium text-[#1F1216] placeholder-[#9E7D88] focus:outline-none focus:border-[#F43F5E] shadow-xs"
+              />
+            </div>
+
+            <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[#FFFFFF] border border-[#FED7E2] self-start shadow-xs">
+              {(['ALL', 'ACTIVE', 'PAUSED'] as const).map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setFilterStatus(status)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold capitalize transition-all ${
+                    filterStatus === status ? 'bg-[#F43F5E] text-white shadow-xs' : 'text-[#6B4E58] hover:text-[#1F1216]'
+                  }`}
+                >
+                  {status.toLowerCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Automations Table / List */}
+          {filteredAutomations.length === 0 ? (
+            <div className="p-12 text-center rounded-3xl border border-[#FED7E2] bg-[#FFFFFF] shadow-sm">
+              <Zap className="w-12 h-12 text-[#FB7185] mx-auto mb-4" />
+              <h3 className="font-extrabold text-base text-[#1F1216] mb-1">No automations found</h3>
+              <p className="text-xs text-[#6B4E58] mb-6 max-w-sm mx-auto">
+                No matching automations found. Create your first workflow or clear search filters.
+              </p>
+              <Link
+                href="/dashboard/automations/new"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-bold text-white rose-button-primary shadow-md"
+              >
+                <Plus className="w-4 h-4" />
+                Build First Automation
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredAutomations.map((auto) => {
+                const keywords = auto.configuration?.conditions?.flatMap((c) => c.keywords || []) || [];
+                const action = auto.configuration?.actions?.[0];
+
+                return (
+                  <div
+                    key={auto.id}
+                    className="p-5 rounded-3xl border border-[#FED7E2] bg-[#FFFFFF] flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-[#F43F5E] transition-all shadow-sm"
+                  >
+                    <div className="space-y-2 flex-1">
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`w-2.5 h-2.5 rounded-full ${
+                            auto.status === 'ACTIVE' ? 'bg-[#10B981]' : 'bg-[#F59E0B]'
+                          }`}
+                        />
+                        <h3 className="font-extrabold text-[#1F1216] text-sm sm:text-base">{auto.name}</h3>
+                        <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-[#FFE4E6] border border-[#FECDD3] text-[#E11D48] font-bold">
+                          {auto.trigger_type.replace('_', ' ')}
+                        </span>
+                      </div>
+
+                      {auto.description && (
+                        <p className="text-xs text-[#6B4E58] max-w-2xl font-medium">{auto.description}</p>
+                      )}
+
+                      {/* Keywords Badges */}
+                      {keywords.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                          <span className="text-[11px] text-[#9E7D88] font-bold">Triggers on:</span>
+                          {keywords.map((kw, i) => (
+                            <span
+                              key={i}
+                              className="px-2.5 py-0.5 rounded-lg bg-[#FFF0F4] border border-[#FED7E2] text-[10px] font-mono text-[#E11D48] font-bold"
+                            >
+                              "{kw}"
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Reply preview */}
+                      {action && (
+                        <div className="text-xs text-[#6B4E58] bg-[#FFF5F7] p-3 rounded-2xl border border-[#FED7E2] italic font-medium">
+                          Action: {action.content || action.linkUrl}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Stats & Actions */}
+                    <div className="flex items-center gap-6 self-end md:self-center border-t md:border-t-0 border-[#FED7E2] pt-3 md:pt-0 w-full md:w-auto justify-between md:justify-end">
+                      <div className="text-right">
+                        <p className="text-sm font-mono font-black text-[#1F1216]">
+                          {auto.configuration?.stats?.repliedCount || 0}
+                        </p>
+                        <p className="text-[10px] text-[#9E7D88] uppercase tracking-wider font-bold">Sent DMs</p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => toggleAutomationStatus(auto.id)}
+                          className={`p-2.5 rounded-xl border text-xs font-bold transition-colors ${
+                            auto.status === 'ACTIVE'
+                              ? 'border-[#10B981]/40 text-[#10B981] bg-[#10B981]/10 hover:bg-[#10B981]/20'
+                              : 'border-[#F59E0B]/40 text-[#F59E0B] bg-[#F59E0B]/10 hover:bg-[#F59E0B]/20'
+                          }`}
+                          title={auto.status === 'ACTIVE' ? 'Pause Automation' : 'Activate Automation'}
+                        >
+                          {auto.status === 'ACTIVE' ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                        </button>
+
+                        <button
+                          onClick={() => deleteAutomation(auto.id)}
+                          className="p-2.5 rounded-xl border border-[#FED7E2] text-[#9E7D88] hover:text-[#EF4444] hover:bg-[#FFF0F4] transition-colors"
+                          title="Delete Automation"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
+  );
+}

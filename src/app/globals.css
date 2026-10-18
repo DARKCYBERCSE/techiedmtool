@@ -1,26 +1,144 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Dreamy Light Theme - Pink + Light Rose + Iridescent Pearl */
+    --bg-main: #FFF5F7;
+    --bg-secondary: #FFF0F4;
+    --bg-sidebar: #FFE8EE;
+    --bg-card: #FFFFFF;
+    --bg-elevated: #FFF9FA;
+    
+    /* Vibrant Rose & Pink Accents */
+    --accent-primary: #F43F5E;       /* Rose-500 */
+    --accent-secondary: #EC4899;     /* Pink-500 */
+    --accent-rose: #FB7185;          /* Light Rose */
+    --accent-magenta: #DB2777;       /* Magenta Deep */
+    --accent-blush: #FCE7F3;         /* Blush pastel */
+    --accent-electric: #F43F5E;
+    
+    /* Contrast Text */
+    --text-primary: #1F1216;         /* Deep espresso velvet */
+    --text-secondary: #6B4E58;       /* Muted rosewood */
+    --text-muted: #9E7D88;           /* Dusty blossom */
+    
+    /* Borders & Highlights */
+    --border-color: #FED7E2;         /* Soft rose border */
+    --border-glow: rgba(244, 63, 94, 0.35);
+    
+    /* Status */
+    --color-success: #10B981;
+    --color-warning: #F59E0B;
+    --color-error: #EF4444;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-main);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(254, 215, 226, 0.6) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(252, 231, 243, 0.7) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(255, 228, 230, 0.5) 0px, transparent 50%);
+  color: var(--text-primary);
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* Custom Scrollbar - Rose Velvet style */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: #FFF0F4;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #F472B6;
+  border-radius: 9999px;
+  border: 1px solid #FFE4E6;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #E11D48;
+}
+
+/* Glassmorphism & Iridescent Lighting */
+.rose-glass-card {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(254, 215, 226, 0.85);
+  box-shadow: 0 10px 30px -10px rgba(244, 63, 94, 0.12), 0 2px 8px -2px rgba(236, 72, 153, 0.08);
+}
+
+.rose-glass-elevated {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 240, 245, 0.85));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1.5px solid rgba(244, 63, 94, 0.25);
+  box-shadow: 0 16px 36px -8px rgba(244, 63, 94, 0.18), 0 0 0 1px rgba(255, 255, 255, 0.8);
+}
+
+.rose-button-primary {
+  background: linear-gradient(135deg, #F43F5E 0%, #EC4899 50%, #FB7185 100%);
+  color: #FFFFFF;
+  box-shadow: 0 8px 20px -4px rgba(244, 63, 94, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.rose-button-primary:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 12px 28px -4px rgba(244, 63, 94, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.rose-button-secondary {
+  background: #FFFFFF;
+  color: #E11D48;
+  border: 1.5px solid #FECDD3;
+  box-shadow: 0 4px 12px -2px rgba(244, 63, 94, 0.08);
+  transition: all 0.2s ease;
+}
+
+.rose-button-secondary:hover {
+  background: #FFF1F2;
+  border-color: #FDA4AF;
+  color: #BE123C;
+}
+
+/* Animated Shimmer & Gradient Flow */
+@keyframes rose-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer-badge {
+  background: linear-gradient(90deg, rgba(244,63,94,0.1) 0%, rgba(236,72,153,0.22) 50%, rgba(244,63,94,0.1) 100%);
+  background-size: 200% 100%;
+  animation: rose-shimmer 3.5s infinite;
+}
+
+/* Pulsing ambient rose light */
+@keyframes pulse-rose-aura {
+  0%, 100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.08);
+  }
+}
+
+.rose-aura {
+  animation: pulse-rose-aura 6s ease-in-out infinite;
+}
+
+/* Rose Text Gradients */
+.text-rose-gradient {
+  background: linear-gradient(135deg, #E11D48 0%, #D946EF 50%, #FB7185 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
