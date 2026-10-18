@@ -15,16 +15,25 @@ import {
   AlertCircle,
   Copy,
   ExternalLink,
-  MessageSquare
+  MessageSquare,
+  Eye,
+  X,
+  Send,
+  Film,
+  Sparkles
 } from 'lucide-react';
 import { DashboardSidebar } from '@/components/layout/dashboard-sidebar';
 import { DashboardTopNav } from '@/components/layout/dashboard-top-nav';
 import { useApp } from '@/context/app-context';
+import type { Automation } from '@/types';
 
 export default function AutomationsPage() {
   const { automations, deleteAutomation, toggleAutomationStatus } = useApp();
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'ACTIVE' | 'PAUSED'>('ALL');
+  const [viewingAutomation, setViewingAutomation] = useState<Automation | null>(null);
+  const [testCommentText, setTestCommentText] = useState('link');
+  const [testResult, setTestResult] = useState<string | null>(null);
 
   const filteredAutomations = automations.filter((a) => {
     const matchesSearch = a.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -165,6 +174,17 @@ export default function AutomationsPage() {
 
                       <div className="flex items-center gap-2">
                         <button
+                          onClick={() => {
+                            setViewingAutomation(auto);
+                            setTestResult(null);
+                          }}
+                          className="p-2.5 rounded-xl border border-[#FED7E2] text-[#6B4E58] hover:text-[#F43F5E] hover:bg-[#FFF0F4] transition-colors"
+                          title="View Automation Details & Trigger Test"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+
+                        <button
                           onClick={() => toggleAutomationStatus(auto.id)}
                           className={`p-2.5 rounded-xl border text-xs font-bold transition-colors ${
                             auto.status === 'ACTIVE'
@@ -188,6 +208,142 @@ export default function AutomationsPage() {
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* View Automation Details & Test Modal */}
+          {viewingAutomation && (
+            <div 
+              className="fixed inset-0 z-50 bg-[#1F1216]/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setViewingAutomation(null);
+              }}
+            >
+              <div className="w-full max-w-xl rounded-3xl border border-[#FED7E2] bg-[#FFFFFF] p-6 sm:p-8 shadow-2xl space-y-6">
+                {/* Modal Header */}
+                <div className="flex items-center justify-between pb-4 border-b border-[#FED7E2]">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-[#FFF0F4] text-[#F43F5E] flex items-center justify-center font-bold">
+                      <Zap className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-extrabold text-[#1F1216]">{viewingAutomation.name}</h3>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#FFE4E6] text-[#E11D48] border border-[#FECDD3]">
+                          {viewingAutomation.trigger_type.replace('_', ' ')}
+                        </span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          viewingAutomation.status === 'ACTIVE' ? 'bg-[#D1FAE5] text-[#10B981]' : 'bg-[#FEF3C7] text-[#D97706]'
+                        }`}>
+                          {viewingAutomation.status}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setViewingAutomation(null)}
+                    className="p-1 rounded-lg text-[#6B4E58] hover:text-[#1F1216] hover:bg-[#FFF0F4]"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Details Body */}
+                <div className="space-y-4 text-xs font-medium text-[#6B4E58]">
+                  {viewingAutomation.description && (
+                    <div className="p-3.5 rounded-2xl bg-[#FFF5F7] border border-[#FED7E2]">
+                      <span className="text-[10px] uppercase font-bold text-[#9E7D88] block mb-1">Description</span>
+                      <p className="text-[#1F1216]">{viewingAutomation.description}</p>
+                    </div>
+                  )}
+
+                  {/* Trigger Keywords */}
+                  <div className="p-3.5 rounded-2xl bg-[#FFF5F7] border border-[#FED7E2] space-y-2">
+                    <span className="text-[10px] uppercase font-bold text-[#9E7D88] block">Trigger Keywords</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(viewingAutomation.configuration?.conditions?.flatMap((c) => c.keywords || []) || []).map((kw, i) => (
+                        <span
+                          key={i}
+                          className="px-2.5 py-1 rounded-xl bg-white border border-[#FECDD3] text-xs font-mono font-bold text-[#E11D48]"
+                        >
+                          "{kw}"
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Configured Reply Action */}
+                  <div className="p-3.5 rounded-2xl bg-[#FFF5F7] border border-[#FED7E2] space-y-2">
+                    <span className="text-[10px] uppercase font-bold text-[#9E7D88] block">Automated Direct Reply</span>
+                    <p className="text-xs text-[#1F1216] font-semibold bg-white p-3 rounded-xl border border-[#FED7E2] leading-relaxed">
+                      {viewingAutomation.configuration?.actions?.[0]?.content || 
+                       viewingAutomation.configuration?.actions?.[0]?.linkUrl || 
+                       'No reply content configured'}
+                    </p>
+                  </div>
+
+                  {/* Live Simulation / Trigger Test */}
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-[#FFF0F4] to-[#FFE4E6] border border-[#FECDD3] space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-extrabold text-[#1F1216] flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-[#F43F5E]" /> Test Comment-to-DM Trigger
+                      </span>
+                      <span className="text-[10px] text-[#9E7D88] font-bold">Simulator</span>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={testCommentText}
+                        onChange={(e) => setTestCommentText(e.target.value)}
+                        placeholder="Type a comment (e.g. link, bot)..."
+                        className="flex-1 px-3.5 py-2 rounded-xl bg-white border border-[#FED7E2] text-xs font-semibold text-[#1F1216] focus:outline-none focus:border-[#F43F5E]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const keywords = (viewingAutomation.configuration?.conditions?.flatMap((c) => c.keywords || []) || []).map((k) => k.toLowerCase());
+                          const isMatch = keywords.some((kw) => testCommentText.toLowerCase().includes(kw));
+                          if (isMatch) {
+                            const action = viewingAutomation.configuration?.actions?.[0];
+                            setTestResult(`MATCH! Automated DM sent: "${action?.content || action?.linkUrl}"`);
+                          } else {
+                            setTestResult(`NO MATCH: Comment "${testCommentText}" does not contain any of [${keywords.join(', ')}]`);
+                          }
+                        }}
+                        className="px-4 py-2 rounded-xl text-xs font-bold text-white rose-button-primary shadow-xs flex items-center gap-1.5"
+                      >
+                        <Send className="w-3.5 h-3.5" /> Test
+                      </button>
+                    </div>
+
+                    {testResult && (
+                      <div className={`p-3 rounded-xl text-xs font-bold ${
+                        testResult.startsWith('MATCH') 
+                          ? 'bg-[#D1FAE5] text-[#065F46] border border-[#A7F3D0]' 
+                          : 'bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A]'
+                      }`}>
+                        {testResult}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Footer Buttons */}
+                <div className="pt-2 flex items-center justify-between border-t border-[#FED7E2]">
+                  <span className="text-[11px] text-[#9E7D88] font-medium font-mono">
+                    ID: {viewingAutomation.id.slice(0, 16)}...
+                  </span>
+
+                  <button
+                    onClick={() => setViewingAutomation(null)}
+                    className="px-5 py-2 rounded-xl text-xs font-bold text-white rose-button-primary shadow-sm"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </main>

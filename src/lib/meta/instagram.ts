@@ -278,8 +278,32 @@ export const sendInstagramDirectMessage = async ({
   accessToken,
 }: SendInstagramMessageParams): Promise<{ success: boolean; messageId?: string; error?: string }> => {
   try {
+    const effectiveToken = (accessToken || process.env.NEXT_PUBLIC_INSTAGRAM_ACCESS_TOKEN || '').trim();
+    if (!effectiveToken) return { success: false, error: 'No Instagram access token available' };
+
+    // 1. If using Instagram Login / Basic Display token (IGAAN...)
+    if (effectiveToken.startsWith('IG')) {
+      const url = `https://graph.instagram.com/me/messages`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${effectiveToken}`,
+        },
+        body: JSON.stringify({
+          recipient: { id: recipientId },
+          message: { text: messageText },
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        return { success: true, messageId: data.message_id };
+      }
+    }
+
+    // 2. Meta Graph API (graph.facebook.com)
     const apiVersion = process.env.INSTAGRAM_API_VERSION || 'v21.0';
-    const effectiveToken = accessToken || process.env.NEXT_PUBLIC_INSTAGRAM_ACCESS_TOKEN || '';
     const url = `https://graph.facebook.com/${apiVersion}/me/messages`;
 
     const response = await fetch(url, {
@@ -313,5 +337,94 @@ export const sendInstagramDirectMessage = async ({
       success: false,
       error: err instanceof Error ? err.message : 'Unknown communication error with Meta API',
     };
+  }
+};
+
+/**
+ * Sends a private DM directly in response to a user comment on a Reel / Post
+ */
+export const sendPrivateReplyToComment = async (
+  commentId: string,
+  messageText: string,
+  accessToken?: string
+): Promise<{ success: boolean; messageId?: string; error?: string }> => {
+  try {
+    const effectiveToken = (accessToken || process.env.NEXT_PUBLIC_INSTAGRAM_ACCESS_TOKEN || '').trim();
+    if (!effectiveToken) return { success: false, error: 'No access token available' };
+
+    // 1. Try graph.instagram.com
+    if (effectiveToken.startsWith('IG')) {
+      const res = await fetch(`https://graph.instagram.com/me/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${effectiveToken}`,
+        },
+        body: JSON.stringify({
+          recipient: { comment_id: commentId },
+          message: { text: messageText },
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) return { success: true, messageId: data.message_id };
+    }
+
+    // 2. Try graph.facebook.com
+    const apiVersion = process.env.INSTAGRAM_API_VERSION || 'v21.0';
+    const res = await fetch(`https://graph.facebook.com/${apiVersion}/me/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${effectiveToken}`,
+      },
+      body: JSON.stringify({
+        recipient: { comment_id: commentId },
+        message: { text: messageText },
+      }),
+    });
+    const data = await res.json();
+    if (res.ok) return { success: true, messageId: data.message_id };
+
+    return { success: false, error: data.error?.message || 'Failed to send private reply to comment' };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error sending comment DM' };
+  }
+};
+
+/**
+ * Sends a public comment reply underneath the user's comment
+ */
+export const sendPublicCommentReply = async (
+  commentId: string,
+  messageText: string,
+  accessToken?: string
+): Promise<{ success: boolean; commentId?: string; error?: string }> => {
+  try {
+    const effectiveToken = (accessToken || process.env.NEXT_PUBLIC_INSTAGRAM_ACCESS_TOKEN || '').trim();
+    if (!effectiveToken) return { success: false, error: 'No access token available' };
+
+    const apiVersion = process.env.INSTAGRAM_API_VERSION || 'v21.0';
+    const url = effectiveToken.startsWith('IG')
+      ? `https://graph.instagram.com/${commentId}/replies`
+      : `https://graph.facebook.com/${apiVersion}/${commentId}/replies`;
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${effectiveToken}`,
+      },
+      body: JSON.stringify({
+        message: messageText,
+      }),
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      return { success: true, commentId: data.id };
+    }
+    return { success: false, error: data.error?.message || 'Failed to post public reply' };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error posting comment reply' };
   }
 };
