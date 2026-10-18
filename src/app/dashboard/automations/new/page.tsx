@@ -112,6 +112,31 @@ export default function NewAutomationBuilderPage() {
   useEffect(() => {
     let active = true;
 
+    const extractMediaDetails = (caption?: string, mediaType?: string) => {
+      if (!caption || !caption.trim()) {
+        const typeLabel = mediaType === 'VIDEO' ? 'Reel' : 'Post';
+        return {
+          title: `Instagram ${typeLabel} Auto-Responder`,
+          description: `Automatically replies to comments on this ${typeLabel.toLowerCase()}.`,
+        };
+      }
+
+      // First line or up to 60 characters for Title
+      const lines = caption.split('\n').map((l) => l.trim()).filter(Boolean);
+      const firstLine = lines[0] || '';
+      const cleanTitle = firstLine.replace(/^[^\w\s\u0B80-\u0BFF]+|[^\w\s\u0B80-\u0BFF]+$/g, '').slice(0, 65).trim();
+      const finalTitle = cleanTitle || `Instagram ${mediaType === 'VIDEO' ? 'Reel' : 'Post'} Auto-DM`;
+
+      // Full clean caption or paragraph for Description
+      const fullText = lines.slice(0, 3).join(' ').slice(0, 180);
+      const finalDesc = fullText || caption.slice(0, 180);
+
+      return {
+        title: finalTitle,
+        description: finalDesc,
+      };
+    };
+
     // Check if media was passed via query params (e.g. from Accounts page)
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -120,7 +145,13 @@ export default function NewAutomationBuilderPage() {
       const qThumb = params.get('media_thumb');
       if (qMediaId) {
         setSelectedMediaId(qMediaId);
-        if (qCaption) setSelectedMediaCaption(decodeURIComponent(qCaption));
+        const decodedCaption = qCaption ? decodeURIComponent(qCaption) : '';
+        if (decodedCaption) {
+          setSelectedMediaCaption(decodedCaption);
+          const generated = extractMediaDetails(decodedCaption);
+          setName(generated.title);
+          setDescription(generated.description);
+        }
         if (qThumb) setSelectedMediaThumb(decodeURIComponent(qThumb));
         setTargetScope('SPECIFIC_POST');
       }
@@ -135,27 +166,42 @@ export default function NewAutomationBuilderPage() {
         if (active && data.success && data.media && data.media.length > 0) {
           setMediaList(data.media);
           if (!selectedMediaId) {
-            setSelectedMediaId(data.media[0].id);
-            setSelectedMediaCaption(data.media[0].caption || '');
-            setSelectedMediaPermalink(data.media[0].permalink || '');
-            setSelectedMediaThumb(data.media[0].thumbnail_url || data.media[0].media_url || '');
+            const first = data.media[0];
+            setSelectedMediaId(first.id);
+            setSelectedMediaCaption(first.caption || '');
+            setSelectedMediaPermalink(first.permalink || '');
+            setSelectedMediaThumb(first.thumbnail_url || first.media_url || '');
+
+            const generated = extractMediaDetails(first.caption, first.media_type);
+            setName(generated.title);
+            setDescription(generated.description);
           }
         } else {
           setMediaList(fallbackMediaList);
           if (!selectedMediaId) {
-            setSelectedMediaId(fallbackMediaList[0].id);
-            setSelectedMediaCaption(fallbackMediaList[0].caption || '');
-            setSelectedMediaPermalink(fallbackMediaList[0].permalink || '');
-            setSelectedMediaThumb(fallbackMediaList[0].thumbnail_url || '');
+            const first = fallbackMediaList[0];
+            setSelectedMediaId(first.id);
+            setSelectedMediaCaption(first.caption || '');
+            setSelectedMediaPermalink(first.permalink || '');
+            setSelectedMediaThumb(first.thumbnail_url || '');
+
+            const generated = extractMediaDetails(first.caption, first.media_type);
+            setName(generated.title);
+            setDescription(generated.description);
           }
         }
       } catch {
         setMediaList(fallbackMediaList);
         if (!selectedMediaId) {
-          setSelectedMediaId(fallbackMediaList[0].id);
-          setSelectedMediaCaption(fallbackMediaList[0].caption || '');
-          setSelectedMediaPermalink(fallbackMediaList[0].permalink || '');
-          setSelectedMediaThumb(fallbackMediaList[0].thumbnail_url || '');
+          const first = fallbackMediaList[0];
+          setSelectedMediaId(first.id);
+          setSelectedMediaCaption(first.caption || '');
+          setSelectedMediaPermalink(first.permalink || '');
+          setSelectedMediaThumb(first.thumbnail_url || '');
+
+          const generated = extractMediaDetails(first.caption, first.media_type);
+          setName(generated.title);
+          setDescription(generated.description);
         }
       } finally {
         if (active) setLoadingMedia(false);
@@ -174,6 +220,24 @@ export default function NewAutomationBuilderPage() {
     setSelectedMediaPermalink(m.permalink || '');
     setSelectedMediaThumb(m.thumbnail_url || m.media_url || '');
     setCustomPostUrl('');
+
+    // Automatically generate Title and Description from selected Reel / Post!
+    if (m.caption && m.caption.trim()) {
+      const lines = m.caption.split('\n').map((l) => l.trim()).filter(Boolean);
+      const firstLine = lines[0] || '';
+      const cleanTitle = firstLine.replace(/^[^\w\s\u0B80-\u0BFF]+|[^\w\s\u0B80-\u0BFF]+$/g, '').slice(0, 65).trim();
+      const finalTitle = cleanTitle || `Instagram ${m.media_type === 'VIDEO' ? 'Reel' : 'Post'} Auto-DM`;
+      const fullText = lines.slice(0, 3).join(' ').slice(0, 180);
+
+      setName(finalTitle);
+      setDescription(fullText || m.caption.slice(0, 180));
+      setErrorMsg('');
+    } else {
+      const typeLabel = m.media_type === 'VIDEO' ? 'Reel' : 'Post';
+      setName(`Instagram ${typeLabel} Auto-DM`);
+      setDescription(`Automatically replies to comments on this ${typeLabel.toLowerCase()}.`);
+      setErrorMsg('');
+    }
   };
 
   const handleAddKeyword = (e: React.KeyboardEvent) => {
@@ -298,7 +362,14 @@ export default function NewAutomationBuilderPage() {
           <div className="space-y-6">
             {/* Step 0: Identity */}
             <div className="p-6 sm:p-8 rounded-3xl border border-[#FED7E2] bg-[#FFFFFF] shadow-sm space-y-4">
-              <h3 className="text-sm font-black uppercase tracking-wider text-[#F43F5E]">Step 0: Identity</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-black uppercase tracking-wider text-[#F43F5E]">Step 0: Identity</h3>
+                {selectedMediaId && (
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#10B981] bg-[#D1FAE5] px-2.5 py-0.5 rounded-full border border-[#A7F3D0]">
+                    <Sparkles className="w-3 h-3 text-[#10B981]" /> Auto-Filled From Selected Reel / Post
+                  </span>
+                )}
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[#6B4E58] mb-1">Automation Title</label>
