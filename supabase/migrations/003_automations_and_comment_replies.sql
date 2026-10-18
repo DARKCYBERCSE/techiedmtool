@@ -7,7 +7,33 @@
 -- 1. Ensure UUID Extension is Active
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 2. Automations Table (Full Support for Post / Reel Comment Triggers)
+-- 2. Make user_id nullable in automations table so system & template blueprints can be inserted
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+      AND table_name = 'automations' 
+      AND column_name = 'user_id'
+  ) THEN
+    ALTER TABLE public.automations ALTER COLUMN user_id DROP NOT NULL;
+  END IF;
+END $$;
+
+-- Also ensure instagram_account_id is nullable and can accept text / uuid
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+      AND table_name = 'automations' 
+      AND column_name = 'instagram_account_id'
+  ) THEN
+    ALTER TABLE public.automations ALTER COLUMN instagram_account_id DROP NOT NULL;
+  END IF;
+END $$;
+
+-- 3. Create Automations Table if it does not exist
 CREATE TABLE IF NOT EXISTS public.automations (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -26,7 +52,7 @@ CREATE INDEX IF NOT EXISTS idx_automations_user_id ON public.automations(user_id
 CREATE INDEX IF NOT EXISTS idx_automations_status ON public.automations(status);
 CREATE INDEX IF NOT EXISTS idx_automations_trigger_type ON public.automations(trigger_type);
 
--- 3. Automation Executions & Audit Log
+-- 4. Automation Executions & Audit Log
 CREATE TABLE IF NOT EXISTS public.automation_executions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   automation_id UUID REFERENCES public.automations(id) ON DELETE CASCADE,
@@ -44,20 +70,20 @@ CREATE TABLE IF NOT EXISTS public.automation_executions (
 CREATE INDEX IF NOT EXISTS idx_executions_automation_id ON public.automation_executions(automation_id);
 CREATE INDEX IF NOT EXISTS idx_executions_created_at ON public.automation_executions(created_at DESC);
 
--- 4. Enable Row Level Security (RLS)
+-- 5. Enable Row Level Security (RLS)
 ALTER TABLE public.automations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.automation_executions ENABLE ROW LEVEL SECURITY;
 
--- 5. Clean up existing policies
+-- 6. Clean up existing policies
 DROP POLICY IF EXISTS "Users can view their own automations" ON public.automations;
 DROP POLICY IF EXISTS "Users can insert their own automations" ON public.automations;
 DROP POLICY IF EXISTS "Users can update their own automations" ON public.automations;
 DROP POLICY IF EXISTS "Users can delete their own automations" ON public.automations;
 
 DROP POLICY IF EXISTS "Users can view their automation executions" ON public.automation_executions;
-DROP POLICY IF EXISTS "Service role can manage automation executions" ON public.automation_executions;
+DROP POLICY IF EXISTS "Anyone can insert automation executions" ON public.automation_executions;
 
--- 6. RLS Policies for automations table
+-- 7. RLS Policies for automations table
 CREATE POLICY "Users can view their own automations"
   ON public.automations FOR SELECT
   USING (auth.uid() = user_id OR user_id IS NULL);
@@ -74,7 +100,7 @@ CREATE POLICY "Users can delete their own automations"
   ON public.automations FOR DELETE
   USING (auth.uid() = user_id OR user_id IS NULL);
 
--- 7. RLS Policies for automation executions
+-- 8. RLS Policies for automation executions
 CREATE POLICY "Users can view their automation executions"
   ON public.automation_executions FOR SELECT
   USING (true);
@@ -83,14 +109,22 @@ CREATE POLICY "Anyone can insert automation executions"
   ON public.automation_executions FOR INSERT
   WITH CHECK (true);
 
--- 8. Auto-update updated_at timestamp trigger
+-- 9. Auto-update updated_at timestamp trigger
+CREATE OR REPLACE FUNCTION public.handle_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 DROP TRIGGER IF EXISTS trigger_automations_updated_at ON public.automations;
 CREATE TRIGGER trigger_automations_updated_at
   BEFORE UPDATE ON public.automations
   FOR EACH ROW
   EXECUTE PROCEDURE public.handle_updated_at();
 
--- 9. Seed the active "INSTAGRAM AND YOUTUBE VIDEOS DOWNLOAD" automation
+-- 10. Seed the active "INSTAGRAM AND YOUTUBE VIDEOS DOWNLOAD" automation
 INSERT INTO public.automations (name, description, trigger_type, configuration, status)
 VALUES (
   'INSTAGRAM AND YOUTUBE VIDEOS DOWNLOAD',
@@ -103,7 +137,7 @@ VALUES (
         'id', 'cond_1',
         'type', 'KEYWORD',
         'matchType', 'CONTAINS',
-        'keywords', jsonb_build_array('link', 'bot', 'LINK', 'BOT', 'Link', 'Bot')
+        'keywords', jsonb_build_array('link', 'bot', 'LINK', 'BOT', 'Link', 'Bot', 'send link')
       )
     ),
     'actions', jsonb_build_array(

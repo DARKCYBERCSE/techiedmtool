@@ -34,6 +34,16 @@ export default function AutomationsPage() {
   const [viewingAutomation, setViewingAutomation] = useState<Automation | null>(null);
   const [testCommentText, setTestCommentText] = useState('link');
   const [testResult, setTestResult] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleteToastMsg, setDeleteToastMsg] = useState<string | null>(null);
+
+  const handleDeleteConfirmed = (id: string) => {
+    const target = automations.find((a) => a.id === id);
+    deleteAutomation(id);
+    setDeleteConfirmId(null);
+    setDeleteToastMsg(`Automation "${target?.name || 'Workflow'}" deleted successfully!`);
+    setTimeout(() => setDeleteToastMsg(null), 4000);
+  };
 
   const filteredAutomations = automations.filter((a) => {
     const matchesSearch = a.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -67,6 +77,19 @@ export default function AutomationsPage() {
               New Automation
             </Link>
           </div>
+
+          {/* Success Notification Banner */}
+          {deleteToastMsg && (
+            <div className="p-4 rounded-2xl bg-[#D1FAE5] border border-[#A7F3D0] flex items-center justify-between gap-3 text-xs font-bold text-[#065F46] animate-in fade-in duration-200">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-[#10B981] flex-shrink-0" />
+                <span>{deleteToastMsg}</span>
+              </div>
+              <button onClick={() => setDeleteToastMsg(null)} className="text-[#065F46] hover:text-[#1F1216]">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
 
           {/* Search & Filter Bar */}
           <div className="flex flex-col sm:flex-row gap-3">
@@ -197,7 +220,7 @@ export default function AutomationsPage() {
                         </button>
 
                         <button
-                          onClick={() => deleteAutomation(auto.id)}
+                          onClick={() => setDeleteConfirmId(auto.id)}
                           className="p-2.5 rounded-xl border border-[#FED7E2] text-[#9E7D88] hover:text-[#EF4444] hover:bg-[#FFF0F4] transition-colors"
                           title="Delete Automation"
                         >
@@ -341,6 +364,42 @@ export default function AutomationsPage() {
                     className="px-5 py-2 rounded-xl text-xs font-bold text-white rose-button-primary shadow-sm"
                   >
                     Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Delete Confirmation Modal */}
+          {deleteConfirmId && (
+            <div 
+              className="fixed inset-0 z-50 bg-[#1F1216]/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setDeleteConfirmId(null);
+              }}
+            >
+              <div className="w-full max-w-sm rounded-3xl border border-[#FECDD3] bg-[#FFFFFF] p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+                <div className="w-12 h-12 rounded-2xl bg-[#FEE2E2] text-[#EF4444] flex items-center justify-center mx-auto">
+                  <Trash2 className="w-6 h-6" />
+                </div>
+                <div className="text-center">
+                  <h3 className="font-extrabold text-base text-[#1F1216]">Delete This Automation?</h3>
+                  <p className="text-xs text-[#6B4E58] mt-1 font-medium">
+                    This automation will be permanently removed and will stop listening for reel comments or DMs.
+                  </p>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <button
+                    onClick={() => setDeleteConfirmId(null)}
+                    className="flex-1 py-2.5 rounded-2xl text-xs font-bold text-[#6B4E58] bg-[#FFF0F4] hover:bg-[#FFE4E6]"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleDeleteConfirmed(deleteConfirmId)}
+                    className="flex-1 py-2.5 rounded-2xl text-xs font-bold text-white bg-[#EF4444] hover:bg-[#DC2626] shadow-sm"
+                  >
+                    Delete Now
                   </button>
                 </div>
               </div>

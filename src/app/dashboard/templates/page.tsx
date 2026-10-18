@@ -45,6 +45,7 @@ export default function TemplatesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   // Form State
   const [formName, setFormName] = useState('');
@@ -132,8 +133,11 @@ export default function TemplatesPage() {
   };
 
   const handleDelete = (id: string) => {
+    const target = templates.find((t) => t.id === id);
     deleteTemplate(id);
     setDeleteConfirmId(null);
+    setToastMsg(`Template "${target?.name || 'Playbook'}" deleted successfully!`);
+    setTimeout(() => setToastMsg(null), 4000);
   };
 
   const handleApplyTemplate = (tpl: Template) => {
@@ -203,6 +207,19 @@ export default function TemplatesPage() {
               Create Custom Template
             </button>
           </div>
+
+          {/* Notification Toast */}
+          {toastMsg && (
+            <div className="p-4 rounded-2xl bg-[#D1FAE5] border border-[#A7F3D0] flex items-center justify-between gap-3 text-xs font-bold text-[#065F46] animate-in fade-in duration-200">
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-[#10B981] flex-shrink-0" />
+                <span>{toastMsg}</span>
+              </div>
+              <button onClick={() => setToastMsg(null)} className="text-[#065F46] hover:text-[#1F1216]">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
 
           {/* Search & Category Pill Filters */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
