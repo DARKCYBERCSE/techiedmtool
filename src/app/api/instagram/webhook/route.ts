@@ -75,16 +75,19 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // Reel / Post comments event
+        // Reel / Post comments & mentions events
         if (entry.changes) {
           for (const change of entry.changes) {
-            if (change.field === 'comments') {
-              const comment = change.value;
-              const commentId = comment.id;
-              const senderId = comment.from?.id;
-              const senderUsername = comment.from?.username;
-              const text = (comment.text || '').trim();
-              const mediaId = comment.media?.id;
+            const field = change.field;
+            const val = change.value;
+
+            // Meta can send 'comments', 'comment', or 'mention'
+            if (field === 'comments' || field === 'comment' || field === 'live_comments') {
+              const commentId = val?.id;
+              const senderId = val?.from?.id;
+              const senderUsername = val?.from?.username;
+              const text = (val?.text || val?.message || '').trim();
+              const mediaId = val?.media?.id;
 
               console.log(`[Meta Webhook] Received Instagram Comment from @${senderUsername} (${senderId}) on media ${mediaId}: "${text}"`);
 
@@ -96,6 +99,10 @@ export async function POST(req: NextRequest) {
                 text,
                 mediaId,
               });
+            } else if (field === 'mentions') {
+              const commentId = val?.comment_id;
+              const mediaId = val?.media_id;
+              console.log(`[Meta Webhook] Received Instagram Mention: comment ${commentId} on media ${mediaId}`);
             }
           }
         }
