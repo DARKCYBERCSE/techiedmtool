@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   Bot, 
   Sparkles, 
@@ -29,12 +30,31 @@ import { MarketingFooter } from '@/components/layout/marketing-footer';
 import { useApp } from '@/context/app-context';
 
 export default function LandingPage() {
+  const router = useRouter();
   const { user } = useApp();
   const [activeFaq, setActiveFaq] = useState<number | null>(0);
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
   const [upiCopied, setUpiCopied] = useState(false);
 
   const upiId = 'muthurajc@slc';
+
+  const handlePlanClick = (planId: 'pro' | 'agency') => {
+    // Check if user is actively authenticated in state or localStorage
+    let isAuthed = user?.isAuthenticated;
+    try {
+      const savedUserStr = localStorage.getItem('techie_user');
+      const savedUser = savedUserStr ? JSON.parse(savedUserStr) : null;
+      if (savedUser && savedUser.isAuthenticated) {
+        isAuthed = true;
+      }
+    } catch {}
+
+    if (isAuthed) {
+      router.push(`/dashboard/billing?plan=${planId}`);
+    } else {
+      router.push(`/login?redirect=/dashboard/billing%3Fplan%3D${planId}`);
+    }
+  };
 
   const handleCopyUpi = () => {
     navigator.clipboard.writeText(upiId);

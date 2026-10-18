@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { 
   CreditCard, 
   Check, 
@@ -20,7 +21,8 @@ import { DashboardSidebar } from '@/components/layout/dashboard-sidebar';
 import { DashboardTopNav } from '@/components/layout/dashboard-top-nav';
 import { useApp } from '@/context/app-context';
 
-export default function BillingPage() {
+function BillingPageContent() {
+  const searchParams = useSearchParams();
   const { user, upgradePlan, dmsUsedCount, dmsLimit, submitUpiVerification } = useApp();
   const [successToast, setSuccessToast] = useState(false);
   const [upiCopied, setUpiCopied] = useState(false);
@@ -32,6 +34,26 @@ export default function BillingPage() {
     inr: 2999,
     planId: 'pro',
   });
+
+  // Automatically activate selected plan from URL if arriving from landing page pricing
+  useEffect(() => {
+    const planParam = searchParams.get('plan');
+    if (planParam === 'pro') {
+      setSelectedPlanForUpi({
+        name: 'Creator Pro',
+        inr: 2999,
+        planId: 'pro',
+      });
+      setUpiModal(true);
+    } else if (planParam === 'agency') {
+      setSelectedPlanForUpi({
+        name: 'Agency Scale',
+        inr: 9999,
+        planId: 'agency',
+      });
+      setUpiModal(true);
+    }
+  }, [searchParams]);
 
   const upiId = 'muthurajc@slc';
 
@@ -431,5 +453,17 @@ export default function BillingPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function BillingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#FFF5F7] flex items-center justify-center p-4">
+        <p className="text-xs font-bold text-[#6B4E58]">Loading billing plans...</p>
+      </div>
+    }>
+      <BillingPageContent />
+    </Suspense>
   );
 }
