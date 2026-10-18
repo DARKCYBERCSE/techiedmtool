@@ -21,7 +21,7 @@ export const META_SCOPES = [
  * Generates the official Meta / Instagram OAuth Login URL
  */
 export const getMetaOAuthUrl = (state: string): string => {
-  const appId = process.env.META_APP_ID || process.env.NEXT_PUBLIC_META_APP_ID || '';
+  const appId = (process.env.META_APP_ID || process.env.NEXT_PUBLIC_META_APP_ID || '947533688039115').trim();
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
   const redirectUri = `${appUrl}/api/instagram/callback`;
   const scope = META_SCOPES.join(',');
@@ -84,8 +84,8 @@ export async function exchangeCodeForTokens(code: string): Promise<{
   error?: string;
 }> {
   try {
-    const appId = process.env.META_APP_ID || '';
-    const appSecret = process.env.META_APP_SECRET || '';
+    const appId = (process.env.META_APP_ID || process.env.NEXT_PUBLIC_META_APP_ID || '947533688039115').trim();
+    const appSecret = (process.env.META_APP_SECRET || 'dfde40fc6f5e96c8f3c654f44abae73c').trim();
     const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
     const redirectUri = `${appUrl}/api/instagram/callback`;
 

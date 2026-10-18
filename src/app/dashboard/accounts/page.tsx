@@ -148,7 +148,7 @@ export default function AccountsPage() {
               </div>
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-base font-extrabold text-[#1F1216]">TechieDMTool - IG</h3>
+                  <h3 className="text-base font-extrabold text-[#1F1216]">{process.env.NEXT_PUBLIC_INSTAGRAM_APP_NAME || 'TechieDMTool'}</h3>
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#10B981] bg-[#D1FAE5] px-2.5 py-0.5 rounded-full">
                     <CheckCircle2 className="w-3 h-3" /> Meta Graph API v21.0
                   </span>
@@ -167,7 +167,7 @@ export default function AccountsPage() {
             <div className="flex flex-col sm:flex-row lg:flex-col gap-2 w-full lg:w-auto flex-shrink-0">
               <div className="flex items-center justify-between gap-3 text-xs bg-[#FFF5F7] px-3.5 py-2 rounded-xl border border-[#FED7E2]">
                 <span className="text-[#6B4E58] font-bold">App ID:</span>
-                <span className="font-mono font-bold text-[#F43F5E]">979944231179440</span>
+                <span className="font-mono font-bold text-[#F43F5E]">{process.env.NEXT_PUBLIC_META_APP_ID || '947533688039115'}</span>
               </div>
               <div className="flex items-center justify-between gap-3 text-xs bg-[#FFF5F7] px-3.5 py-2 rounded-xl border border-[#FED7E2]">
                 <span className="text-[#6B4E58] font-bold">App Secret:</span>
