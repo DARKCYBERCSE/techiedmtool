@@ -243,17 +243,25 @@ async function processMessageOrComment(event: {
       // 4. Log execution in Supabase if available
       try {
         const supabase = getServiceSupabase();
-        await supabase.from('automation_executions').insert({
-          automation_id: auto.id.startsWith('auto-') ? null : auto.id,
-          trigger_source: event.type === 'COMMENT' ? 'INSTAGRAM_COMMENT' : 'INSTAGRAM_DM',
-          comment_id: event.commentId || null,
-          sender_id: event.senderId || null,
-          sender_username: event.senderUsername || null,
-          keyword_matched: matchedKeyword,
-          reply_sent: replyMessage,
-          status: replySuccess ? 'SUCCESS' : 'FAILED',
-        });
-      } catch {}
+        if (!auto.id.startsWith('auto-')) {
+          await supabase.from('automation_executions').insert({
+            automation_id: auto.id,
+            external_event_id: event.commentId || event.senderId || `evt-${Date.now()}`,
+            status: replySuccess ? 'SUCCESS' : 'FAILED',
+            execution_details: {
+              trigger_source: event.type === 'COMMENT' ? 'INSTAGRAM_COMMENT' : 'INSTAGRAM_DM',
+              comment_id: event.commentId || null,
+              sender_id: event.senderId || null,
+              sender_username: event.senderUsername || null,
+              keyword_matched: matchedKeyword,
+              reply_sent: replyMessage,
+            },
+            error_code: replySuccess ? null : 'META_API_REPLY_FAILED',
+          });
+        }
+      } catch (logErr) {
+        console.warn('[Meta Webhook] Failed to record execution log:', logErr);
+      }
 
       break; // Only execute first matched rule
     }
