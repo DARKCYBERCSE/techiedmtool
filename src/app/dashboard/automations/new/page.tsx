@@ -111,10 +111,26 @@ export default function NewAutomationBuilderPage() {
   // Fetch real media from Meta API or fallback to active list
   useEffect(() => {
     let active = true;
+
+    // Check if media was passed via query params (e.g. from Accounts page)
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const qMediaId = params.get('media_id');
+      const qCaption = params.get('media_caption');
+      const qThumb = params.get('media_thumb');
+      if (qMediaId) {
+        setSelectedMediaId(qMediaId);
+        if (qCaption) setSelectedMediaCaption(decodeURIComponent(qCaption));
+        if (qThumb) setSelectedMediaThumb(decodeURIComponent(qThumb));
+        setTargetScope('SPECIFIC_POST');
+      }
+    }
+
     const loadMedia = async () => {
       setLoadingMedia(true);
       try {
-        const res = await fetch(`/api/instagram/media?account_id=${activeAccount?.id || 'me'}&token=${activeAccount?.access_token || ''}`);
+        const targetToken = activeAccount?.access_token || (typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_INSTAGRAM_ACCESS_TOKEN : '');
+        const res = await fetch(`/api/instagram/media?account_id=${activeAccount?.id || 'me'}&token=${targetToken || ''}`);
         const data = await res.json();
         if (active && data.success && data.media && data.media.length > 0) {
           setMediaList(data.media);

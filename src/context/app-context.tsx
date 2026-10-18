@@ -14,7 +14,12 @@ interface AppContextType {
   accounts: InstagramAccount[];
   activeAccount: InstagramAccount | null;
   setActiveAccount: (account: InstagramAccount) => void;
-  connectInstagramAccount: (handle: string, accountType?: 'CREATOR' | 'BUSINESS', accessToken?: string) => InstagramAccount;
+  connectInstagramAccount: (
+    handle: string, 
+    accountType?: 'CREATOR' | 'BUSINESS', 
+    accessToken?: string,
+    extra?: { name?: string; profilePictureUrl?: string; externalAccountId?: string }
+  ) => InstagramAccount;
   updateAccountAccessToken: (accountId: string, token: string) => void;
   disconnectInstagramAccount: (accountId: string) => void;
   automations: Automation[];
@@ -89,6 +94,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const parsed = JSON.parse(savedAccounts);
         setAccounts(parsed);
         if (parsed.length > 0) setActiveAccount(parsed[0]);
+      } else {
+        // Auto-seed user's verified Instagram Creator Account from environment token
+        const defaultAcc: InstagramAccount = {
+          id: 'acc-techiemuthuraj',
+          user_id: 'user-default',
+          external_account_id: '28373437965671281',
+          username: 'techiemuthuraj',
+          name: 'Techie Muthuraj',
+          profile_picture_url: 'https://scontent.cdninstagram.com/v/t51.82787-19/825326135_17881428522689519_8873317729779957728_n.jpg?stp=dst-jpg_s206x206_tt6&_nc_cat=102&ccb=7-5&_nc_sid=bf7eb4&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLnd3dy4xMDgwLkMzIn0%3D&_nc_ohc=G8kgqQPgZ24Q7kNvwGytY5w&_nc_oc=AdoKBV23LQnb7UpngvYAsO4JCnLzMac7xZPtiIVbbxwX75HLdiZkZ0KNDIynpmds_2QmvCzYEXiRuuHcu6VLPOlX&_nc_zt=24&_nc_ht=scontent.cdninstagram.com&edm=AP4hL3IEAAAA&_nc_gid=HctZK2DO6qxnyKb-Olc2xA&_nc_tpa=Q5bMBQINWZdl4boXdojiE3PJWoG4SlDR3mP7r5-afuELjmWxk14KUpo8Of7K3Zt90DmtLp8-r9M1bn8S&oh=00_AQPS-d9kHR73euzeVsKCkbWqP8Ren_5_qJ7Nhv-03Y5K0w&oe=6ADAC06D',
+          account_type: 'CREATOR',
+          connection_status: 'CONNECTED',
+          access_token: process.env.NEXT_PUBLIC_INSTAGRAM_ACCESS_TOKEN || 'IGAAN7QQvMlLBBZAFlQVFRVa2d3c0plRjV4bzU1RW1jNkZANUVhIWUVhV2ZANNzlTM09XN3VpOHJpOVdmNTdGOTdfTVhoWjE0WHU4c01vczB0ZAmttV2x5bk9BSTJHeEtPV0h6aHQwVk84UnYxbVdmUDYwbnNiTzZAHWldQeEdmYjZASawZDZD',
+          token_expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        setAccounts([defaultAcc]);
+        setActiveAccount(defaultAcc);
+        try {
+          localStorage.setItem('techie_accounts', JSON.stringify([defaultAcc]));
+        } catch {}
       }
 
       const savedAutomations = localStorage.getItem('techie_automations');
@@ -118,16 +144,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const connectInstagramAccount = (
     handle: string, 
     accountType: 'CREATOR' | 'BUSINESS' = 'CREATOR',
-    accessToken?: string
+    accessToken?: string,
+    extra?: {
+      name?: string;
+      profilePictureUrl?: string;
+      externalAccountId?: string;
+    }
   ): InstagramAccount => {
     const cleanHandle = handle.replace('@', '').trim();
     const newAccount: InstagramAccount = {
       id: `acc-${Date.now()}`,
       user_id: user.id,
-      external_account_id: `ig-${Date.now()}`,
+      external_account_id: extra?.externalAccountId || `ig-${Date.now()}`,
       username: cleanHandle,
-      name: `${cleanHandle} (Connected)`,
-      profile_picture_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+      name: extra?.name || `${cleanHandle} (Connected)`,
+      profile_picture_url: extra?.profilePictureUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
       account_type: accountType,
       connection_status: 'CONNECTED',
       access_token: accessToken || (typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_INSTAGRAM_ACCESS_TOKEN : '') || '',
@@ -136,7 +167,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updated_at: new Date().toISOString(),
     };
 
-    const updated = [...accounts, newAccount];
+    const updated = [...accounts.filter(a => a.username.toLowerCase() !== cleanHandle.toLowerCase()), newAccount];
     setAccounts(updated);
     setActiveAccount(newAccount);
     try {

@@ -12,12 +12,19 @@ import {
   Lock, 
   Layers, 
   QrCode,
-  X
+  X,
+  Play,
+  Film,
+  Image as ImageIcon,
+  Heart,
+  MessageCircle,
+  Sparkles
 } from 'lucide-react';
 import { InstagramIcon as Instagram } from '@/components/ui/instagram-icon';
 import { DashboardSidebar } from '@/components/layout/dashboard-sidebar';
 import { DashboardTopNav } from '@/components/layout/dashboard-top-nav';
 import { useApp } from '@/context/app-context';
+import type { InstagramMediaItem } from '@/lib/meta/instagram';
 
 export default function AccountsPage() {
   const { 
@@ -36,6 +43,40 @@ export default function AccountsPage() {
   const [quickTokenValue, setQuickTokenValue] = useState('');
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  const [mediaList, setMediaList] = useState<InstagramMediaItem[]>([]);
+  const [loadingMedia, setLoadingMedia] = useState(false);
+  const [mediaFilter, setMediaFilter] = useState<'ALL' | 'VIDEO' | 'IMAGE'>('ALL');
+  const [isVerifying, setIsVerifying] = useState(false);
+
+  // Auto load posts & reels for active account
+  useEffect(() => {
+    let isMounted = true;
+    const fetchMedia = async () => {
+      const targetToken = activeAccount?.access_token || (typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_INSTAGRAM_ACCESS_TOKEN : '');
+      if (!targetToken) {
+        setMediaList([]);
+        return;
+      }
+      setLoadingMedia(true);
+      try {
+        const res = await fetch(`/api/instagram/media?account_id=${activeAccount?.id || 'me'}&token=${targetToken}`);
+        const data = await res.json();
+        if (isMounted && data.success && Array.isArray(data.media)) {
+          setMediaList(data.media);
+        }
+      } catch (err) {
+        console.error('Failed to load Instagram media:', err);
+      } finally {
+        if (isMounted) setLoadingMedia(false);
+      }
+    };
+
+    fetchMedia();
+    return () => {
+      isMounted = false;
+    };
+  }, [activeAccount?.id, activeAccount?.access_token]);
 
   // Handle incoming OAuth parameters from /api/instagram/callback
   useEffect(() => {
@@ -68,18 +109,47 @@ export default function AccountsPage() {
     window.location.href = '/api/instagram/connect';
   };
 
-  const handleConnect = (e: React.FormEvent) => {
+  const handleConnect = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!handleInput.trim()) return;
-    connectInstagramAccount(handleInput, accountType, tokenInput);
+
+    setIsVerifying(true);
+    const targetToken = tokenInput.trim() || (typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_INSTAGRAM_ACCESS_TOKEN : '') || '';
+
+    let profilePic: string | undefined;
+    let actualName = handleInput.trim();
+    let externalId: string | undefined;
+
+    // Fetch verified profile from Meta API if token is provided or configured
+    if (targetToken) {
+      try {
+        const profileRes = await fetch(`/api/instagram/profile?token=${encodeURIComponent(targetToken)}`);
+        const profileData = await profileRes.json();
+        if (profileData.success && profileData.account) {
+          profilePic = profileData.account.profile_picture_url;
+          actualName = profileData.account.name || actualName;
+          externalId = profileData.account.id;
+        }
+      } catch {
+        // Fallback to manual input
+      }
+    }
+
+    connectInstagramAccount(handleInput, accountType, targetToken, {
+      name: actualName,
+      profilePictureUrl: profilePic,
+      externalAccountId: externalId,
+    });
+
+    setIsVerifying(false);
     setHandleInput('');
     setTokenInput('');
     setConnectionModal(false);
-    setSaveSuccessMsg(`Connected @${handleInput.replace('@', '')} successfully!`);
+    setSaveSuccessMsg(`Connected @${handleInput.replace('@', '')} successfully! Live posts & reels synced.`);
     setTimeout(() => setSaveSuccessMsg(''), 4000);
   };
 
-  const handleUpdateToken = (accountId: string) => {
+  const handleUpdateToken = async (accountId: string) => {
     if (!quickTokenValue.trim()) return;
     updateAccountAccessToken(accountId, quickTokenValue);
     setEditingTokenAccountId(null);
@@ -321,6 +391,155 @@ export default function AccountsPage() {
             </div>
           )}
 
+          {/* Real Instagram Posts & Reels Section */}
+          {activeAccount && (
+            <div className="p-6 sm:p-8 rounded-3xl border border-[#FED7E2] bg-[#FFFFFF] shadow-sm space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#FED7E2]">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Film className="w-5 h-5 text-[#F43F5E]" />
+                    <h3 className="text-lg font-black text-[#1F1216]">
+                      Synced Posts & Reels
+                    </h3>
+                    <span className="text-xs font-bold text-[#F43F5E] bg-[#FFF0F4] px-2.5 py-0.5 rounded-full border border-[#FED7E2]">
+                      @{activeAccount.username}
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#6B4E58] mt-1 font-medium">
+                    Select any live post or reel to trigger automated direct replies and comment-to-DM workflows.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="flex bg-[#FFF5F7] p-1 rounded-2xl border border-[#FED7E2] text-xs font-bold">
+                    <button
+                      onClick={() => setMediaFilter('ALL')}
+                      className={`px-3 py-1.5 rounded-xl transition-all ${
+                        mediaFilter === 'ALL'
+                          ? 'bg-[#F43F5E] text-white shadow-xs'
+                          : 'text-[#6B4E58] hover:text-[#1F1216]'
+                      }`}
+                    >
+                      All ({mediaList.length})
+                    </button>
+                    <button
+                      onClick={() => setMediaFilter('VIDEO')}
+                      className={`px-3 py-1.5 rounded-xl transition-all ${
+                        mediaFilter === 'VIDEO'
+                          ? 'bg-[#F43F5E] text-white shadow-xs'
+                          : 'text-[#6B4E58] hover:text-[#1F1216]'
+                      }`}
+                    >
+                      Reels / Videos
+                    </button>
+                    <button
+                      onClick={() => setMediaFilter('IMAGE')}
+                      className={`px-3 py-1.5 rounded-xl transition-all ${
+                        mediaFilter === 'IMAGE'
+                          ? 'bg-[#F43F5E] text-white shadow-xs'
+                          : 'text-[#6B4E58] hover:text-[#1F1216]'
+                      }`}
+                    >
+                      Posts / Photos
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {loadingMedia ? (
+                <div className="py-16 text-center space-y-3">
+                  <RefreshCw className="w-8 h-8 text-[#F43F5E] animate-spin mx-auto" />
+                  <p className="text-xs font-bold text-[#6B4E58]">Fetching live posts and reels from Instagram Graph API...</p>
+                </div>
+              ) : mediaList.length === 0 ? (
+                <div className="py-12 text-center space-y-2">
+                  <p className="text-xs font-bold text-[#6B4E58]">No posts or reels found for this account.</p>
+                  <p className="text-[11px] text-[#9E7D88]">Ensure your Instagram Professional account has published content.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {mediaList
+                    .filter((m) => {
+                      if (mediaFilter === 'VIDEO') return m.media_type === 'VIDEO';
+                      if (mediaFilter === 'IMAGE') return m.media_type === 'IMAGE' || m.media_type === 'CAROUSEL_ALBUM';
+                      return true;
+                    })
+                    .map((item) => {
+                      const isVideo = item.media_type === 'VIDEO';
+                      const previewImage = item.thumbnail_url || item.media_url || 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=400&q=80';
+
+                      return (
+                        <div
+                          key={item.id}
+                          className="group rounded-2xl border border-[#FED7E2] bg-[#FFFFFF] overflow-hidden flex flex-col hover:border-[#F43F5E] hover:shadow-lg hover:shadow-[#F43F5E]/10 transition-all"
+                        >
+                          {/* Media Thumbnail */}
+                          <div className="relative aspect-square bg-[#1F1216] overflow-hidden">
+                            <img
+                              src={previewImage}
+                              alt={item.caption || 'Instagram Post'}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                            
+                            <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full text-[10px] font-bold text-white bg-black/60 backdrop-blur-xs flex items-center gap-1">
+                              {isVideo ? <Film className="w-3 h-3 text-[#FB7185]" /> : <ImageIcon className="w-3 h-3 text-[#FB7185]" />}
+                              {isVideo ? 'Reel' : 'Post'}
+                            </span>
+
+                            {item.permalink && (
+                              <a
+                                href={item.permalink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-black/60 backdrop-blur-xs text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#F43F5E]"
+                                title="Open on Instagram"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+
+                            {isVideo && (
+                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-xs flex items-center justify-center text-white">
+                                  <Play className="w-4 h-4 fill-white ml-0.5" />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Content & Action */}
+                          <div className="p-3.5 flex-1 flex flex-col justify-between space-y-3">
+                            <p className="text-xs text-[#1F1216] font-medium line-clamp-2 leading-relaxed">
+                              {item.caption || 'No caption provided'}
+                            </p>
+
+                            <div className="space-y-2 pt-2 border-t border-[#FFF0F4]">
+                              <div className="flex items-center justify-between text-[11px] text-[#6B4E58]">
+                                <span className="font-medium text-[#9E7D88]">
+                                  {new Date(item.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                </span>
+                                <span className="text-[10px] font-bold text-[#10B981] bg-[#D1FAE5] px-2 py-0.5 rounded-md">
+                                  Live Sync
+                                </span>
+                              </div>
+
+                              <a
+                                href={`/dashboard/automations/new?media_id=${item.id}&media_caption=${encodeURIComponent(item.caption || '')}&media_thumb=${encodeURIComponent(previewImage)}`}
+                                className="w-full py-2 rounded-xl text-xs font-bold text-white rose-button-primary shadow-xs flex items-center justify-center gap-1.5 transition-all text-center block"
+                              >
+                                <Sparkles className="w-3.5 h-3.5" />
+                                Automate This {isVideo ? 'Reel' : 'Post'}
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Connection Modal with Click-Outside Backdrop */}
           {connectionModal && (
             <div 
@@ -440,20 +659,35 @@ export default function AccountsPage() {
                     <span>Your password is never shared. Access tokens are encrypted server-side.</span>
                   </div>
 
-                  <div className="pt-2 flex justify-end gap-2">
+                  <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3">
                     <button
                       type="button"
-                      onClick={() => setConnectionModal(false)}
-                      className="px-4 py-2.5 rounded-xl text-xs font-bold text-[#6B4E58] hover:text-[#1F1216] bg-[#FFF0F4]"
+                      onClick={() => {
+                        setHandleInput('techiemuthuraj');
+                        setTokenInput(process.env.NEXT_PUBLIC_INSTAGRAM_ACCESS_TOKEN || 'IGAAN7QQvMlLBBZAFlQVFRVa2d3c0plRjV4bzU1RW1jNkZANUVhIWUVhV2ZANNzlTM09XN3VpOHJpOVdmNTdGOTdfTVhoWjE0WHU4c01vczB0ZAmttV2x5bk9BSTJHeEtPV0h6aHQwVk84UnYxbVdmUDYwbnNiTzZAHWldQeEdmYjZASawZDZD');
+                      }}
+                      className="text-xs text-[#F43F5E] hover:underline font-bold self-start"
                     >
-                      Cancel
+                      Use Configured @techiemuthuraj
                     </button>
-                    <button
-                      type="submit"
-                      className="px-6 py-2.5 rounded-2xl text-xs font-bold text-white rose-button-primary shadow-md hover:opacity-95"
-                    >
-                      Verify & Connect Account
-                    </button>
+
+                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setConnectionModal(false)}
+                        className="px-4 py-2.5 rounded-xl text-xs font-bold text-[#6B4E58] hover:text-[#1F1216] bg-[#FFF0F4]"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isVerifying}
+                        className="px-6 py-2.5 rounded-2xl text-xs font-bold text-white rose-button-primary shadow-md hover:opacity-95 flex items-center gap-2 disabled:opacity-50"
+                      >
+                        {isVerifying && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                        {isVerifying ? 'Verifying with Meta...' : 'Verify & Connect Account'}
+                      </button>
+                    </div>
                   </div>
                 </form>
                 </div>

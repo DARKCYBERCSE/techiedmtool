@@ -197,15 +197,40 @@ export async function fetchInstagramMedia(
   accessToken: string
 ): Promise<InstagramMediaItem[]> {
   try {
+    const effectiveToken = (accessToken || process.env.NEXT_PUBLIC_INSTAGRAM_ACCESS_TOKEN || '').trim();
+    if (!effectiveToken) return [];
+
+    // If it's an Instagram User Token (Basic Display / Instagram Login IGAAN...)
+    const isInstagramUserToken = effectiveToken.startsWith('IG') || instagramAccountId === 'me';
+
+    if (isInstagramUserToken) {
+      const url = `https://graph.instagram.com/me/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp&access_token=${effectiveToken}`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (res.ok && data.data) {
+        return data.data as InstagramMediaItem[];
+      }
+    }
+
+    // Otherwise, fetch via Meta Graph API for Instagram Business Account
     const apiVersion = process.env.INSTAGRAM_API_VERSION || 'v21.0';
-    const effectiveToken = accessToken || process.env.NEXT_PUBLIC_INSTAGRAM_ACCESS_TOKEN || '';
-    const url = `https://graph.facebook.com/${apiVersion}/${instagramAccountId}/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,comments_count,like_count&access_token=${effectiveToken}`;
+    const targetId = (!instagramAccountId || instagramAccountId === 'me') ? 'me' : instagramAccountId;
+    const url = `https://graph.facebook.com/${apiVersion}/${targetId}/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,comments_count,like_count&access_token=${effectiveToken}`;
 
     const res = await fetch(url);
     const data = await res.json();
 
     if (!res.ok || !data.data) {
-      console.warn('Failed to fetch Instagram media:', data.error);
+      // Final attempt: try graph.instagram.com if graph.facebook.com failed
+      const fallbackUrl = `https://graph.instagram.com/me/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp&access_token=${effectiveToken}`;
+      const fallbackRes = await fetch(fallbackUrl);
+      const fallbackData = await fallbackRes.json();
+      if (fallbackRes.ok && fallbackData.data) {
+        return fallbackData.data as InstagramMediaItem[];
+      }
+
+      console.warn('Failed to fetch Instagram media:', data.error || fallbackData.error);
       return [];
     }
 
